@@ -1,0 +1,77 @@
+我用ngrx管理angular变量状态，在开发模式下，注入reducer正常，代码如下：
+//home.module.ts
+import { initStates, rootReducer } from '../../ngrx.reducers/index';
+@NgModule({
+  imports: [
+    ..., // 省略无关代码
+    StoreModule.provideStore(rootReducer, initStates)
+  ],
+  ..., // 省略无关代码
+})
+
+等到切换到生产模式进行打包时打包出现了如下错误：
+
+“Error: Error encountered resolving symbol values statically. Function calls are not supported. Consider replacing the function or lambda with a reference to an exported function (position 12:42 in the original .ts file)”，这个错误表示不支持函数作为参数，让你改为传函数引用或者Lambda表达式(闭包)。
+
+那么根据提示我们改为传入函数引用，代码如下：
+
+//index.ts
+export const rootReducer = compose(combineReducers)(homeReducers);
+export function rootReducerFactory() {
+  return rootReducer;
+}
+
+//home.module.ts
+@NgModule({
+  imports: [
+    ..., // 省略无关代码
+    StoreModule.provideStore(rootReducerFactory)
+  ],
+  ..., // 省略无关代码
+})
+
+传入rootReducerFactory工厂函数再次打包，很好，打包不再出错，成功的打出了生产包。
+
+让我们运行起来吧。
+
+运行出现如下错误：
+EXCEPTION: Cannot read property 'length' of undefined.
+
+what a **! 又出错了。reducer注入失败，程序初始化失败，没有读取到变量的初始值，导致值为undefined，undefined自然没length属性。
+
+经过一番查找资料，终于摸索出了解决办法。查看官方文档发现Store类有个replaceReducer方法用于替换原来的reducer。
+
+于是按照思路写了store-service.ts类用于替换原来的reducer，代码如下：
+//store-service.ts
+import { Injectable } from '@angular/core';
+import { Store, combineReducers } from '@ngrx/store';
+
+@Injectable()
+export class StoreService {
+  private _reducers: any = {};
+  constructor(private store: Store<any>) {}
+  addReducers(reducers: any) {
+    const reducerKeys = Object.keys(reducers);
+    for (let i = 0; i < reducerKeys.length; i++) {
+      const key = reducerKeys[i];
+      this._reducers[key] = reducers[key];
+    }
+    this.store.replaceReducer(combineReducers(this._reducers));
+  }
+}
+
+然后在我们需要的地方注入reducer，我的应用需要在home.component.ts里面注入，代码如下：
+// home.component.ts
+import { Store } from '@ngrx/store';
+import { StoreService } from '../../ngrx/store-service';
+import { homeReducers } from '../../ngrx/reducers/home';
+... // 省略无关代码
+constructor(
+  private store: Store<RootState>,
+  storeService: StoreService,
+) {
+  storeService.addReducers(homeReducers); // 重新注入reducer
+}
+... // 省略无关代码
+
+完成，再次打包运行，bingo，程序不再报错，成功运行。
