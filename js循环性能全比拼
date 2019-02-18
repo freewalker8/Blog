@@ -1,0 +1,103 @@
+如我们所知，进行循环操作的方法有如下几种：
+1、for
+2、while
+3、do while
+4、for of （只能遍历有迭代器的对象，如数组）
+5、for in
+那么，这几种方法哪一种效率更高呢？
+我们通过一个demo来确定下，假设有一个数组，数组里面包含X个对象元素。我们对数组进行循环，给每个对象加上一个时间（time）字段，再加上一个（job）工作字段。在控制台打印出循环完成耗时。数组遍历可以用map（ES5），所以这里添加上map进行对比。
+
+测试环境chrome 72.0.3626.109
+测试代码如下：
+  function getTime() {
+    return new Date().getTime();
+  }
+  let lists = [];
+  const mount = 100000;
+  for(let i = 0; i < mount; i++) {
+    let obj = {name: 'stone', count: i + 1, time: null};
+    lists.push(obj);
+  }
+  // map
+  let start = getTime();
+  lists.map(function(val, idx, arr){
+    arr[idx].time = getTime();
+    arr[idx].job = 'developer';
+  });
+  console.log('map time consuming:', getTime() - start);
+  // for
+  start = getTime();
+  for(let i=0; i < mount; i++) {
+    let ls = lists[i]
+    ls.time = getTime();
+    ls.job = 'developer';
+  }
+  console.log('for loop time consuming:', getTime() - start);
+  // while
+  start = getTime();
+  let i = 0;
+  while(i < mount) {
+    let ls = lists[i]
+    ls.time = getTime();
+    ls.job = 'developer';
+    i++;
+  }
+  console.log('while loop time consuming:', getTime() - start);
+  // do while
+  start = getTime();
+  i = 0;
+  do{
+    let ls = lists[i]
+    ls.time = getTime();
+    ls.job = 'developer';
+    i++;
+  }while (i<mount)
+  console.log('do while loop time consuming:', getTime() - start);
+  // for of
+  start = getTime();
+  for (const ls of lists) {
+    ls.time = getTime();
+    ls.job = 'developer';
+  }
+  console.log('for of loop time consuming:', getTime() - start);
+  // for in
+  start = getTime();
+  for (const key in lists) {
+    let ls = lists[key]
+    ls.time = getTime();
+    ls.job = 'developer';
+  }
+  console.log('for in loop time consuming:', getTime() - start);
+  
+处理长度为100000（十万）个的数组时的耗时情况如下：  
+单位：毫秒
+map time consuming: 56
+for loop time consuming: 54
+while loop time consuming: 46
+do while loop time consuming: 46
+for of loop time consuming: 62
+for in loop time consuming: 59
+耗时倒序排列为：
+for of (62) > for in (59) > map (56) > for (54) > while = do while (46)
+
+将mount改为100000（百万），多次执行，取一次执行结果，耗时如下：
+map time consuming: 530
+for loop time consuming: 442
+while loop time consuming: 412
+do while loop time consuming: 417
+for of loop time consuming: 462
+for in loop time consuming: 680
+耗时倒序排列为：
+for in (680) > map (530) > for of (462) > for (442) > do while (417) > while (412)
+
+将mount改为1000000（千万），多次执行，取一次执行结果，耗时如下：
+map time consuming: 6583
+for loop time consuming: 4214
+while loop time consuming: 4049
+do while loop time consuming: 5776
+for of loop time consuming: 4701
+for in loop time consuming: 10827
+耗时倒序排列为：
+for in (10827) > map (6583) > do while (5776) > for of (4701) > for (4214) > while (4049) 
+
+综上，可以得出循环效率最高的是while，效率最低的是for in
