@@ -1,0 +1,158 @@
+1.问题描述
+    在没有使用路由懒加载的时候，第一次使用的时候加载特别慢，影响用户体验，angular2可以使用loadChildren进行懒加载，第一次使用的时候只会加载需要的模块，其它模块在真正使用的时候才会去加载，这个时候打开浏览器控制台查看js加载的时候，会发现你在使用时候会去加载对应的js，导致第一次点击相应模块的功能时会卡顿一下，后面在使用就不会了，这样用户体验不好，接下来我们使用预加载策略解决这个问题。
+
+2.预加载策略
+    RouterModule.forRoot的第二个参数接受一个附加配置选项，这个配置选项中有一个是preloadingStrategy配置，当然它还有其它配置，这里只讲preloadingStrategy，这个配置是一个预加载策略配置。
+    我们可以使用PreloadAllModules（预加载所有路由含有属性data:{preload:true}的模块）作为preloadingStrategy的值，如下：
+    {preloadingStrategy: PreloadAllModules}
+    也可以实现一个自己的预加载策略，在一些不需要预加载的场景我们可以不配置，首先我们新建一个selective-preloading-strategy.ts的文件，使用class实现PreloadingStrategy接口的preload方法，代码如下：
+// selective-preloading-strategy.ts
+import { Injectable } from '@angular/core';
+import { PreloadingStrategy, Route } from '@angular/router';
+import 'rxjs/add/observable/of';
+import { Observable } from 'rxjs/Observable';
+
+@Injectable()
+export class SelectivePreloadingStrategy implements PreloadingStrategy {
+  preloadedModules: string[] = [];
+  preload(route: Route, load: () => Observable<any>): Observable<any> {
+    if(route.data && route.data['preload']) {
+      // add the route path to our preloaded module array
+      this.preloadedModules.push(route.path);
+      console.log('Preloaded:' + route.path);
+      return load();
+    }else {
+      return Observable.of(null);
+    }
+  }
+}
+
+3.预加载示例
+    项目含有一个dataCenter的模块，我们将这个模块设置为预加载。步奏如下：
+    a、配置dataCenter的路由
+// dataCenter-router.module.ts
+import { DataOutletComponent } from './dataOutlet.component';
+import { DataCenterComponent } from './dataCenter.component';
+import { AppDetailComponent } from './appDetail/appDetail.component';
+
+export const routes: Routes = [
+  {
+    path: '',
+    component: DataOutletComponent,
+    children: [
+      {
+        path: 'appDetail/:id',
+        component: AppDetailComponent,
+      },
+      {
+        path: '',
+        component: DataCenterComponent,
+      }
+    ]
+  }
+];
+
+@NgModule({
+  imports: [
+    RouterModule.forChild(routes)
+  ],
+  exports: [
+    RouterModule
+  ],
+})
+export class DataCenterRouterModule {}
+
+DataOutletComponent里面只有一个路由插座，提供给子模块的组件进行显示组件
+
+b、设置子模块module
+代码如下：
+// dataCenter.module.ts
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { CommonComponentModule } from '../common/commonComponnet.module';
+
+import { DataCenterRouteModule } from './dataCenter-route.module';
+import { DataOutletComponent } from './dataOutlet.component';
+import { DataCenterComponent } from './dataCenter.component';
+import { AppDetailComponent } from './appDetail/appDetail.component';
+
+@NgModule({
+  imports: [
+    CommonModule,
+    FormsModule,
+    CommonComponentModule,
+    DataCenterRouteModule,
+  ],
+  declarations: [
+    DataOutletComponent,
+    DataCenterComponent,
+    AppDetailComponent,
+  ]
+})
+export class DataCenterModule {}
+
+c、将子模块加载到父模块，设置父路由（将子路由配置为预加载）
+代码如下：
+//加载子模块
+import { DataCenterModule } from './modules/dataCenter/dataCenter.module';
+@NgModule({
+  imports: [
+    ..., // 省略无关代码
+    DataCenterModule,
+  ]
+})
+... // 省略无关代码
+
+// 设置父路由
+export const routes: Routes = [
+  {
+    path: '',
+    component: SampleComponent,
+    children: [
+      {path: '', pathMatch: 'full', redirectTo: 'myWork'},
+      {path: 'myWork', componnet: MyWorkComponent},
+      ... // 省略无关代码
+      {
+        path: 'dataCenter',
+        loadChildren: './modules/dataCenter/dataCenter.module#DataCenterModule',
+        data: {preload: true},
+      }
+    ]
+  }
+]
+
+d、设置根路由，配置预加载
+//配置预加载策略
+import { SelectivePreloadingStrategy } from '../app/Desktop/selective-preloading-strategy';
+import { Routes, RouterModule } from '@angular/router';
+import { NgModule } from '@angular/core';
+
+export const appRouteConfig: Routes = [
+  {
+    path: 'Desktop',
+    loadChildren: '../app/Desktop/Desktop.module#DesktopModiu;e?chunkName=Desktop',
+  }
+  ... // 省略无关代码
+]
+@NgModule({
+  imports: [
+    RouterModule.forRoot(appRouteConfig, {preloadingStrategy: SelectivePreloadingStrategy}),
+  ],
+  exports: [RouterModule],
+})
+export class FrameworksRouteModule {}
+
+// 在跟模块frameworks.module.ts注册预加载策略,以便后面使用依赖注入
+代码如下：
+... // 省略无关代码
+providers: [
+  ... // 省略无关代码
+  SelectivePreloadingStrategy,
+]
+... // 省略无关代码
+
+SelectivePreloadingStrategy自定义预加载策略的内容见文章头部“2.预加载策略”部分
+
+至此，dataCenter模块的预加载设置完成，刷新项目主页，在控制台打印出了被预加载的模块信息，如下：
+Preloaded: dataCenter
