@@ -19,6 +19,10 @@ JS
 10、异步获取资源时，XMLHttpRequest的状态码有哪些，代表什么意思？
 11、你使用过哪些ES6属性和语法？
 12、异步获取资源，你知道有哪些方法？
+13、for of,for in,forEach,map的区别是什么？
+14、apply，call，bind有什么区别？如何模拟apply和bind？
+15、什么是变量提升？
+16、谈谈js的作用域？
 
 Http
 1、输入网址回车发生了些什么？
