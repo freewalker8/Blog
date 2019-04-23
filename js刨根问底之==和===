@@ -1,0 +1,64 @@
+js比较运算符==（相等）和===（全等）的区别在于==会进行类型转换，而===不会进行类型转换。
+==操作的计算过程除了第一步进行类型转换和===不同外，其它全部相同。所以我们先来探究下===的执行步奏。
+
+===（全等、严格相等）的执行步奏如下：
+1、判断类型是否相等。不相等？返回false，结束比较。相等？执行下一步
+2、判断值是否相等。不相等？返回false，结束比较。相等？返回true
+
+Tips：
+a、-0和+0是严格相等的，即：-0 === +0，
+b、NaN和任何值不相等，包括它自己，即：NaN !== NaN
+
+==（相等）的判断执行过程，用 A == B 作为实例的执行步奏如下
+1、判断A和B类型是否相等，相等则不需要进行类型转换，直接进行比较，走全等比较逻辑；
+  A和B类型不相等，按下面的步骤进行转换后比较
+2、判断A和B是否是null或undefined，如果是，返回true。即：
+  null == undefined, null == null, undefined == undefined
+3、A和B有一方是undefined或null，另一方为非undefined或null，则返回false。
+  即：undefined|null == String|Null|Boolean|Object都返回false
+4、A和B有一方是Number类型，将另一方（String或Boolean类型）转为Number类型再进行比较。
+  假设A为String或Boolean类型，B为Number类型，则A会转换为Number，比较规则为：ToNumber(A) === B
+5、A和B有一方是Boolean类型，将Boolean转换为数字。
+  假设B为Boolean类型，则B = ToNumber(B)
+  假设A:String,则A = ToNumber(A)
+  假设A:Object，则 A = ToPrimitive(A),比较方式为：ToPrimitive(A) == ToNumber(B)
+  ToPrimitive(A)通过尝试调用 A 的A.toString() 和 A.valueOf() 方法，将参数 A 转换为原始值（Primitive）
+  Tips: A为null和undefined时比较结果返回false
+6、A和B中B为Object类型，则将B转为原始类型，即：B=ToPrimitive(B)  
+  假设A:Number,A不进行转换，则比较方式为：ToPrimitive(B) === A
+  假设A:String,A不进行转换，则比较方式为：ToPrimitive(B) == A
+  假设A:Boolean,则A=ToNumber(A),则比较方式为：ToPrimitive(B) == ToNumber(A)
+7、进行类型转换后的操作和全等（===）操作一样，见上。
+
+练习：
+1、 [] == []
+2、 [] == ![]
+解析在下面。
+|
+|
+|
+|
+|
+|
+|
+|
+|
+|
+↓
+
+解析：
+1、 [] == []
+  a、左右两边都是对象，类型相同，进入值比较
+  b、对象类型访问的是对象的栈引用，左边的空数组的引用值和右边的数组的引用值不相等，所以返回false。
+
+2、 [] == ![]
+  a、逻辑非运算符的优先级大于比较预算符，所有先执行![]
+  b、[]是一个对象，对象始终为真，所以![] === false
+  c、所以此时[] == ![] 等价于 [] == false，安装上面的解析步奏5，有一方为Boolean，则将双方都转换为数字进行比较
+  d、执行ToNumber([]) === ToNumber(false)，[]转换为数字等于0，false转换为数字等于0，所以[] == ![]的执行结果为true。
+
+  Tips: 数组转数字，如果数组为空则等于0，如果数组包含一个元素则结果为该元素转换为数字的值，如果数组有多个元素则转换的值为NaN
+  [1] == 1,['1'] == 1返回true
+  ['1a'] == 1 返回false，因为['1a']转换为数字为NaN
+
+
