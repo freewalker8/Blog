@@ -15,7 +15,7 @@ b、NaN和任何值不相等，包括它自己，即：NaN !== NaN
 2、判断A和B是否是null或undefined，如果是，返回true。即：
   null == undefined, null == null, undefined == undefined
 3、A和B有一方是undefined或null，另一方为非undefined或null，则返回false。
-  即：undefined|null == String|Null|Boolean|Object都返回false
+  即：undefined|null == String|Boolean|Object都返回false
 4、A和B有一方是Number类型，将另一方（String或Boolean类型）转为Number类型再进行比较。
   假设A为String或Boolean类型，B为Number类型，则A会转换为Number，比较规则为：ToNumber(A) === B
 5、A和B有一方是Boolean类型，将Boolean转换为数字。
