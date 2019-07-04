@@ -1,0 +1,190 @@
+var obj = {
+      typeMap: {
+        array: 'Array',
+        object: 'Object',
+        function: 'Function',
+        string: 'String',
+        null: 'Null',
+        undefined: 'Undefined',
+        boolean: 'Boolean',
+        number: 'Number'
+      },
+      /**
+       * 获取对象类型
+       * @params obj 数据对象
+       */
+      getType: function (obj) {
+        return Object.prototype.toString.call(obj).slice(8, -1);
+      },
+      /**
+       * 判断是否为某一类型
+       * @params obj 待判断对象
+       * @params type 类型 ，需为类型map（typeMap）中的类型
+       * */
+      isTypeOf: function (obj, type) {
+        return this.typeMap[type] && this.typeMap[type] === this.getType(obj);
+      },
+      // 对象深拷贝
+      deepClone: function (obj) {
+        var DFSdeepClone = function (obj, visitedArr) {
+          var _obj = {}
+          visitedArr = visitedArr || [];
+
+          if (this.isTypeOf(obj, 'array') || this.isTypeOf(obj, 'object')) {
+            var index = visitedArr.indexOf(obj)
+            _obj = this.isTypeOf(obj, 'array') ? [] : {};
+
+            if (~index) { // 判断环状数据
+              _obj = visitedArr[index]
+            } else {
+              visitedArr.push(obj)
+              for (var item in obj) {
+                _obj[item] = DFSdeepClone(obj[item], visitedArr)
+              }
+            }
+
+          } else if (this.isTypeOf(obj, 'function')) {
+            _obj = eval('(' + obj.toString() + ')');
+          } else {
+            _obj = obj
+          }
+          return _obj
+        }.bind(this);
+
+        return DFSdeepClone(obj);
+      },
+      assign: function() {
+        var args = arguments;
+        var len = args.length;
+
+        if (0 === len) {
+          throw new Error('参数错误：预期最少传入1个参数');
+        } else { // len >= 1         
+          var dest = this.deepClone(args[0]);
+
+          if(this.isTypeOf(dest, 'string')) {
+            dest = {};
+            var arr = dest.split('');
+
+            for (const key in arr) {
+              if (arr.hasOwnProperty(key)) {
+                dest[i] = arr[key];                   
+              }
+            }
+          }
+
+          for (var i = 1; i < len; i++) {
+            var arg = args[i];
+
+            if (this.isTypeOf(arg, 'object')) {
+              var src = this.deepClone(args[i]);
+              for (var key in src) {
+                if (src.hasOwnProperty(key)) {
+                  dest[key] = src[key];
+                }
+              }
+            } else if (this.isTypeOf(arg, 'string')) {
+              var arr = arg.split('');
+
+              for (const key in arr) {
+                if (arr.hasOwnProperty(key)) {
+                  dest[i] = arr[key];                   
+                }
+              }
+            } else { // number, boolean
+              continue;
+            }
+            
+          }
+
+          return dest;
+        }
+      },
+      // 对象合并
+      objectMerge: function () {
+        var args = arguments;
+        var len = args.length;
+
+        if (2 > len) {
+          throw new Error('参数错误：预期最少传入两个参数');
+        } else { // len >= 2
+
+          for (var i = 0; i < len; i++) {
+            if (!this.isTypeOf(args[i], 'object')) {
+              throw new Error('参数错误：所有参数必须为对象');
+            }
+          }
+
+          var merge = function (dest, src) {
+            for (var key in src) {
+              if (src.hasOwnProperty(key)) {
+                var val = src[key];
+
+                if (!dest[key]) { // 目标对象不存在对应属性，直接添加属性
+                  dest[key] = src[key];
+                } else { // 目标对象存在对应属性
+                  this.isTypeOf(val, 'object') ?
+                    merge(dest[key], src[key]) :
+                    dest[key] = src[key];
+                }
+              }
+            }
+
+            return dest;
+          }.bind(this);
+
+          var dest = this.deepClone(args[0]);
+          for (var i = 1; i < len; i++) {
+            var src = this.deepClone(args[i]);
+            dest = merge(dest, src);
+          }
+
+          return dest;
+        }
+      }
+    };
+
+    // test
+
+    var temp = {
+      name: 'stone',
+      age: 29,
+      tec: ['jquery', 'vue', 'angular'],
+      fav: {
+        basketball: true,
+        travel: true
+      },
+      children: [{
+        name: 'lettle stone',
+        born: 2019
+      }]
+    }
+
+    var temp2 = {
+      name: 'xiuxiu',
+      age: 29,
+      tec: ['excel', 'ps'],
+      fav: {
+        more: {
+          bingbang: true
+        }
+      },
+      children: [{
+        name: 'xiaozhuzhu',
+        born: 2019
+      }],
+      other: {
+        sex: 'female',
+        height: 156
+      }
+    }   
+
+    var cl = obj.deepClone(temp);
+    console.log('cl', cl);
+
+    var cl2 = obj.objectMerge(temp, temp2);
+    console.log('cl2', cl2);
+
+    console.log('assign', Object.assign({}, temp, temp2));
+
+    console.log('assign user', obj.assign('abcd'))
